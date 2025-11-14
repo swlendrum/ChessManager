@@ -1,0 +1,5 @@
+Nano:
+
+func read(mul_add, chan_add):
+    i2c read from those addresses
+    return UID as list[byte]
