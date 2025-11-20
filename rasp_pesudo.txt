@@ -3,40 +3,28 @@ Raspberry Pi:
 |--- data definitions ---|
 
 a UID is a python bytes
-(bytes is a python type representating an immutable sequence of UIDS)
-
-an add_pair is a tuple (int, int) containing the multiplexer i2c address and channel ID for a specific NFC reader
-
-|--- fields/vars ---|
-
-board: our Board(chess.Board) class
-    * interfaces with python's chess module
-    * can easily print game state
-    * automatic logic for determining move legality, etc
 
 physical_board: 8x8 array of UID
+uid_to_piece: {UID -> chess.Piece}
 
-sensor_map: 8x8 array of add_pair
-
-uid_to_piece: {UID -> chess.Piece} preset map of UID to Piece
+NANO_LEFT_ADDR, NANO_RIGHT_ADDR
 
 |--- funcs ---|
+
+func read_halfboard(nano_addr) -> half_board:
+    raw_block = i2c_read_block(nano_addr, CMD_GET_BLOCK)
+    return reshape_raw_block_to_8x4(raw_block)
+
+func assemble_full_board() -> board_state:
+    left  = read_halfboard(NANO_LEFT_ADDR)
+    right = read_halfboard(NANO_RIGHT_ADDR)
+    new_board = UID[8x8]
+    new_board = concat(left, right) # to be implemented
+    return new_board
 
 func detect_move(old_board, new_board):
     diff old_board vs new_board
     return uci string for move if diff is not none
-
-func read_board() -> board_state:
-    # generates new physical board state (8x8 UID array)
-    new board = UID[8x8]
-    for spot in new_board:
-        new_board[spot] = read(spot)
-
-func read(spot: (r,c)) -> UID (bytes):
-    mul_add, chan_add = sensor_map(spot)
-    nano, give me the UID read from that address combo
-        (returns UID as 7-length array of 8-bit integers)
-    return bytes(UID) # cast to our python type
 
 |--- game logic ---|
 

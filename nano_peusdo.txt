@@ -1,5 +1,119 @@
 Nano:
 
-func read(mul_add, chan_add):
-    i2c read from those addresses
-    return UID as list[byte]
+Each Nano manages half of the chessboard (4 columns × 8 rows = 32 sensors).
+Nano 0 = left half (logical columns 0–3 on the Pi)
+Nano 1 = right half (logical columns 4–7 on the Pi)
+Nano firmware is identical; Pi assigns different I2C slave addresses.
+
+|--- Data Definitions ---|
+
+UID:
+    A UID is a fixed-size byte array (UID_LEN = 7 bytes).
+    EMPTY_UID is 7 zero bytes.
+
+Multiplexer layout (for this Nano):
+    There are 4 multiplexers arranged vertically.
+    Each multiplexer covers a 2×4 block of the Nano’s half-board.
+
+        MUX 0 → logical rows 0–1, columns 0–3
+        MUX 1 → logical rows 2–3, columns 0–3
+        MUX 2 → logical rows 4–5, columns 0–3
+        MUX 3 → logical rows 6–7, columns 0–3
+
+Multiplexer addresses:
+    multiplexer_addrs = [MUX0_ADDR, MUX1_ADDR, MUX2_ADDR, MUX3_ADDR]
+    (hard-coded so both Nanos run identical firmware)
+
+Channel → Local coordinate mapping (for all muxes):
+    # can be updated based on wiring
+    CHANNEL_TO_LOCAL_RC:
+        channel 0 → (0,0)
+        channel 1 → (0,1)
+        channel 2 → (0,2)
+        channel 3 → (0,3)
+        channel 4 → (1,0)
+        channel 5 → (1,1)
+        channel 6 → (1,2)
+        channel 7 → (1,3)
+
+Global coordinate mapping inside this Nano:
+    For multiplexer m:
+        global_row = (m * 2) + local_row   # mux m handles rows 2*m and 2*m+1
+        global_col = local_col             # columns always 0–3 inside a Nano
+
+Cached half-board:
+    halfboard[8][4]  # stores UID or EMPTY_UID
+
+I2C protocol:
+    CMD_GET_BLOCK (0x01) → Pi requests cached 32 UID values
+    CMD_PING      (0x02) → Pi health check / heartbeat
+
+Flattening order for sending to Pi:
+    row-major:
+        halfboard[0][0], [0][1], [0][2], [0][3],
+        halfboard[1][0] ... up to halfboard[7][3]
+    total = 32 entries = 32 × UID_LEN bytes
+
+
+-----------------------------------------------------
+|--- Main Sensor Loop (Continuous Scanning) ---|
+-----------------------------------------------------
+
+loop forever:
+
+    for m in 0..3:                                 # for each multiplexer
+        mux_addr = multiplexer_addrs[m]
+        base_row = m * 2                           # top row of this mux’s block
+
+        for channel in 0..7:                       # 8 NFC readers per mux
+
+            (local_r, local_c) = CHANNEL_TO_LOCAL_RC[channel]
+            global_r = base_row + local_r          # which row in the 8×4 half-board
+            global_c = local_c
+
+            activate_mux_channel(mux_addr, channel)
+
+            uid = read_nfc_reader()
+
+            if uid_read_successful AND uid_is_valid(uid):
+                halfboard[global_r][global_c] = uid
+            else:
+                # When nothing present or read failed, store EMPTY
+                halfboard[global_r][global_c] = EMPTY_UID
+
+    small_delay()   # tune for timing stability
+
+
+-----------------------------------------------------
+|--- I2C Slave Handler ---|
+-----------------------------------------------------
+
+on_i2c_message(command):
+
+    if command == CMD_GET_BLOCK:
+        # Return flattened block (32 × UID_LEN bytes)
+        buffer = empty_byte_buffer()
+        for row in 0..7:
+            for col in 0..3:
+                uid = halfboard[row][col]
+                append uid (7 bytes) to buffer
+        i2c_write_response(buffer)
+
+    else if command == CMD_PING:
+        i2c_write_response(BYTE 0x01)   # simple heartbeat ACK
+
+    else:
+        i2c_write_response(ERROR_BYTE)
+
+
+-----------------------------------------------------
+|--- Notes for Implementation ---|
+-----------------------------------------------------
+
+- All mapping logic is fully deterministic and identical for every Nano.
+- Only difference between Nanos is the I2C slave address (assigned by the Pi).
+- The Pi reconstructs the full 8×8 board by placing:
+        Nano 0 → columns 0–3
+        Nano 1 → columns 4–7
+- Nano should debounce or retry internal NFC reads if flickering is common.
+- EMPTY_UID is used everywhere as canonical “no tag” signal.
