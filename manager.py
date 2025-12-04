@@ -70,7 +70,7 @@ def pos_to_uci(r, c):
 
 def print_half_board(half, file_labels=("a", "b", "c", "d")):
     """
-    Pretty-print an 8×4 half-board of raw piece IDs.
+    Pretty-print an 8x4 half-board of raw piece IDs.
     half: list of 8 rows, each row is 4 columns
     file_labels: tuple of 4 file letters ("a","b","c","d") or ("e","f","g","h")
     """
@@ -465,8 +465,11 @@ if __name__ == "__main__":
     gm = GameManager(engine_path=engine_path)
 
     while True:
-        board = gm.assemble_full_board()
-        print_half_board(board)
+        half = gm.assemble_full_board()
+        if half is not None:
+            print_half_board(half)
+        else:
+            print("No board aquired.")
         time.sleep(5)
     # try:
     #     gm.play()
