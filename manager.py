@@ -24,7 +24,7 @@ import serial.tools.list_ports
 PLAYER, COM = 0, 1
 engine_path = None
 
-TERMINAL_PLAY = True
+TERMINAL_PLAY = False
 
 try:
     with open("config.yaml", "r") as f:
@@ -281,7 +281,7 @@ class GameManager:
     # ---------------------------
     def _read_half_from_nano1(self):
         """
-        Read and parse right half (e–h files) from Nano1.
+        Read and parse right half (e-h files) from Nano1.
         """
         # Optionally ping first; if ping fails, bail.
         if not self.nano1.ping():
@@ -440,7 +440,12 @@ class GameManager:
 # If executed as a script for testing:
 if __name__ == "__main__":
     gm = GameManager(engine_path=engine_path)
-    try:
-        gm.play()
-    finally:
-        gm.quit()
+
+    while True:
+        board = gm.assemble_full_board()
+        print(board)
+        time.sleep(5)
+    # try:
+    #     gm.play()
+    # finally:
+    #     gm.quit()
