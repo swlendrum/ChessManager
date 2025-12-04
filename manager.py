@@ -68,6 +68,29 @@ def pos_to_uci(r, c):
     rank = str(8 - r)
     return file + rank
 
+def print_half_board(half, file_labels=("a", "b", "c", "d")):
+    """
+    Pretty-print an 8×4 half-board of raw piece IDs.
+    half: list of 8 rows, each row is 4 columns
+    file_labels: tuple of 4 file letters ("a","b","c","d") or ("e","f","g","h")
+    """
+    print("\nHalf-board (raw IDs):\n")
+
+    for r in range(8):
+        rank = 8 - r
+        row = half[r]
+        line = f"{rank} | "
+
+        for cell in row:
+            if cell is None:
+                line += ".  "
+            else:
+                line += f"{cell}  "
+
+        print(line)
+
+    # File labels underneath
+    print("\n    " + "  ".join(file_labels) + "\n")
 
 # -------------------------------
 # Move detection (unchanged style)
@@ -443,7 +466,7 @@ if __name__ == "__main__":
 
     while True:
         board = gm.assemble_full_board()
-        print(board)
+        print_half_board(board)
         time.sleep(5)
     # try:
     #     gm.play()
