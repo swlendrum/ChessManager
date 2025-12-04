@@ -68,29 +68,27 @@ def pos_to_uci(r, c):
     rank = str(8 - r)
     return file + rank
 
-def print_half_board(half, file_labels=("a", "b", "c", "d")):
+def print_raw_board(board):
     """
-    Pretty-print an 8x4 half-board of raw piece IDs.
-    half: list of 8 rows, each row is 4 columns
-    file_labels: tuple of 4 file letters ("a","b","c","d") or ("e","f","g","h")
+    Pretty-print the 8x8 board of raw piece IDs (ints or None).
     """
-    print("\nHalf-board (raw IDs):\n")
+    print("\nCurrent board state (raw IDs):\n")
 
     for r in range(8):
         rank = 8 - r
-        row = half[r]
+        row = board[r]
         line = f"{rank} | "
 
         for cell in row:
             if cell is None:
-                line += ".  "
+                line += ".  "       # empty square
             else:
-                line += f"{cell}  "
+                line += f"{cell}  " # raw numeric ID
 
         print(line)
 
-    # File labels underneath
-    print("\n    " + "  ".join(file_labels) + "\n")
+    print("\n    a  b  c  d  e  f  g  h\n")
+
 
 # -------------------------------
 # Move detection (unchanged style)
@@ -465,9 +463,9 @@ if __name__ == "__main__":
     gm = GameManager(engine_path=engine_path)
 
     while True:
-        half = gm.assemble_full_board()
-        if half is not None:
-            print_half_board(half)
+        board = gm.assemble_full_board()
+        if board is not None:
+            print_raw_board(board)
         else:
             print("No board aquired.")
         time.sleep(5)
