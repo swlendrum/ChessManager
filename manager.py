@@ -81,7 +81,7 @@ def print_raw_board(board):
 # SerialNano — connects to Nano by USB serial_number
 # --------------------------------------------------
 class SerialNano:
-    def __init__(self, serial_number, baud=115200, timeout=0.3, label="Nano"):
+    def __init__(self, serial_number, baud=115200, timeout=1.0, label="Nano"):
         self.serial_number = serial_number
         self.baud = baud
         self.timeout = timeout
@@ -101,7 +101,7 @@ class SerialNano:
 
         print(f"[{self.label}] Connecting on {port_name}")
         self.ser = serial.Serial(port_name, baudrate=self.baud, timeout=self.timeout)
-        time.sleep(2.0)   # Nano bootloader reset delay
+        time.sleep(5.0)   # Nano bootloader reset delay
 
     def ping(self):
         try:
