@@ -239,6 +239,8 @@ class GameManager:
             else:
                 last = b
                 count = 1
+            
+            time.sleep(2)
 
     # --------------------------------------------------
     # Board → FEN converter (for FEN matching)
@@ -378,6 +380,9 @@ if __name__ == "__main__":
 
     # NORMAL OPERATION:
     # FULL GAMEPLAY LOOP (left half real, right half dummy)
+
+    gm.wait_for_stable_board()
+
     gm.play()
 
     gm.quit()
