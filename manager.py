@@ -320,7 +320,7 @@ class GameManager:
         print("Starting game with NFC board...")
         print("Waiting to detect initial board...")
 
-        init_b = self.wait_for_stable_board()
+        init_b = self.wait_for_stable_board(required_consistency=5)
         self.physical_board = init_b
 
         print("Initial board detected:")
