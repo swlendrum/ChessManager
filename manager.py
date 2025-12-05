@@ -243,12 +243,12 @@ class GameManager:
     # Detect physical move (new logic)
     # --------------------------------------------------
     def detect_player_move(self):
-        time.sleep(1.5)
+        time.sleep(1)
         new_board = self.assemble_full_board()
         if new_board is None or new_board == self.physical_board:
             return None
 
-        time.sleep(2.0)
+        time.sleep(1)
         confirm = self.assemble_full_board()
         if confirm is None or confirm != new_board:
             return None
