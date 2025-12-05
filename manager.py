@@ -284,10 +284,12 @@ class GameManager:
     # --------------------------------------------------
     def match_board_to_legal_move(self, new_board):
         new_fen = self.board_to_fen(new_board)
+        print("new fen:", new_fen)
 
         for mv in self.board.legal_moves:
             temp = self.board.copy()
             temp.push(mv)
+            print("checking against move:", mv.uci(), "fen:", temp.fen())
             if temp.fen().split(" ")[0] == new_fen.split(" ")[0]:
                 return mv.uci()
 
@@ -322,7 +324,7 @@ class GameManager:
         print("Starting game with NFC board...")
         print("Waiting to detect initial board...")
 
-        init_b = self.wait_for_stable_board(required_consistency=5)
+        init_b = self.wait_for_stable_board(required_consistency=2)
         self.physical_board = init_b
 
         print("Initial board detected:")
@@ -380,8 +382,6 @@ if __name__ == "__main__":
 
     # NORMAL OPERATION:
     # FULL GAMEPLAY LOOP (left half real, right half dummy)
-
-    gm.wait_for_stable_board()
 
     gm.play()
 
