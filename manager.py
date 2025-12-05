@@ -469,7 +469,7 @@ if __name__ == "__main__":
             print_raw_board(board)
         else:
             print("No board aquired.")
-        time.sleep(5)
+        time.sleep(1.5)
     # try:
     #     gm.play()
     # finally:
