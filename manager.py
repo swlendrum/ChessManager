@@ -335,7 +335,7 @@ class GameManager:
                 print("Waiting for player's move...")
                 uci = self.detect_player_move()
                 if not uci:
-                    time.sleep(0.1)
+                    time.sleep(1.5)
                     continue
 
                 try:
