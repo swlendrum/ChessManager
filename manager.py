@@ -11,6 +11,17 @@ This version:
   - NEW stable board is printed using symbols and compared to cached legal-move FENs
 """
 
+"""
+HOW TO RUN:
+If doesn't work normally, so this:
+Run the code on the Pi
+Wait for it to say Connteing to Usb001 or whatever
+it will pause for 5 seconds
+In those 5 seconds, you must double-tap reset on Nano while 
+simulataneously unplugging and then replugging the 5V out to mux's
+
+"""
+
 import chess
 import chess.engine
 import time
