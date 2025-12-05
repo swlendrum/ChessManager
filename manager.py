@@ -166,16 +166,19 @@ class GameManager:
     # --------------------------------------------------
     # Apply mapping & convert 32-byte block → 8×4 matrix
     # --------------------------------------------------
-    def _remap_and_reshape_half(self, raw_block, map_arr):
+    def _remap_and_reshape_half(self, raw_block, Nano0=True):
         if raw_block is None or len(raw_block) != NUM_READERS_PER_NANO:
             return None
 
         remapped = [0] * NUM_READERS_PER_NANO
         for mux in range(4):
-            if mux == 0:
-                map_arr = NANO1_MAP
+            if Nano0:
+                map_arr = NANO0_MAP
             else:
-                map_arr = NANO1_MAP2
+                if mux == 0:
+                    map_arr = NANO1_MAP
+                else:
+                    map_arr = NANO1_MAP2
             base = mux * 8
             for i in range(8):
                 old_idx = base + i
@@ -201,7 +204,7 @@ class GameManager:
         raw = self.nano0.get_block()
         if raw is None:
             return None
-        return self._remap_and_reshape_half(raw, NANO0_MAP)
+        return self._remap_and_reshape_half(raw, Nano0=True)
     
     # --------------------------------------------------
     # Read right half from Nano1
@@ -213,7 +216,7 @@ class GameManager:
         raw = self.nano1.get_block()
         if raw is None:
             return None
-        return self._remap_and_reshape_half(raw, NANO1_MAP)
+        return self._remap_and_reshape_half(raw, Nano0=False)
 
     # --------------------------------------------------
     # Convert half-boards → full 8×8 (right half dummy)
