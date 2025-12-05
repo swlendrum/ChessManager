@@ -29,6 +29,7 @@ import yaml
 import serial
 import serial.tools.list_ports
 
+from motion import execute_uci_move
 
 # --------------------------------------------------
 # GLOBAL CONSTANTS
@@ -378,12 +379,19 @@ class GameManager:
             else:
                 print("\nComputer thinking...")
                 mv = self.get_ai_move()
+                uci = mv.uci()
                 print("Computer plays:", mv)
 
+                # Send motion command sequence to Nano0 (motion controller)
+                # NOTE: nano0 is the same device used for board reading;
+                # we are just sending different command bytes here.
+                execute_uci_move(uci, self.nano0.ser)
+
+                # Update internal board state
                 self.board.push(mv)
                 print(self.board)
 
-                # NEW: Wait for motion controller to finish  
+                # NEW: Wait for motion controller / physical board to catch up
                 expected_fen = self.board.fen()
                 self.wait_until_physical_matches(expected_fen)
 
