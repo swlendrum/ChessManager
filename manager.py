@@ -65,6 +65,7 @@ def pretty_symbol(cell):
         return "."
     return ID_TO_SYMBOL.get(cell, "?")
 
+
 def print_pretty_board(board):
     print("\nBoard state (symbols):\n")
     for r in range(8):
@@ -228,7 +229,7 @@ class GameManager:
         return "/".join(rows) + " w - - 0 1"
 
     # --------------------------------------------------
-    # CACHE LEGAL MOVES INTO {fen → uci}
+    # CACHE LEGAL MOVES
     # --------------------------------------------------
     def cache_legal_moves(self):
         self.cached_fens = {}
@@ -247,7 +248,6 @@ class GameManager:
         if new_board is None or new_board == self.physical_board:
             return None
 
-        # Candidate DIFFERENT board detected → debounce
         time.sleep(2.0)
         confirm = self.assemble_full_board()
         if confirm is None or confirm != new_board:
@@ -259,7 +259,6 @@ class GameManager:
         print("========================\n")
         print_pretty_board(new_board)
 
-        # Convert to FEN and match
         new_fen = self.board_to_fen(new_board).split(" ")[0]
         print("Detected FEN:", new_fen)
 
@@ -270,6 +269,30 @@ class GameManager:
 
         print("No matching legal move for this new board state.")
         return None
+
+    # --------------------------------------------------
+    # NEW FUNCTION: WAIT FOR PHYSICAL BOARD TO MATCH ENGINE MOVE
+    # --------------------------------------------------
+    def wait_until_physical_matches(self, expected_fen, poll_interval=1.0):
+        """
+        Poll Nano every second until the board_to_fen() matches expected_fen.
+        """
+        print("\nWaiting for physical board to match engine move...")
+
+        expected = expected_fen.split(" ")[0]
+
+        while True:
+            b = self.assemble_full_board()
+            if b is not None:
+                fen_phys = self.board_to_fen(b).split(" ")[0]
+
+                if fen_phys == expected:
+                    print("Physical board now matches engine move.")
+                    self.physical_board = b
+                    print_pretty_board(b)
+                    return
+
+            time.sleep(poll_interval)
 
     # --------------------------------------------------
     # AI move
@@ -284,7 +307,6 @@ class GameManager:
     def play(self):
         print("Detecting initial board...")
 
-        # Wait for FIRST stable board at startup
         while True:
             b1 = self.assemble_full_board()
             time.sleep(2)
@@ -295,22 +317,19 @@ class GameManager:
                 print_pretty_board(b1)
                 break
 
-        # Convert detected physical board into actual chess.Board()
         init_fen = self.board_to_fen(b1)
         print("Initial FEN:", init_fen)
 
         try:
             self.board = chess.Board(init_fen)
         except Exception as e:
-            print("ERROR: Could not load initial board FEN:", e)
+            print("ERROR loading initial FEN:", e)
             return
-
 
         self.current_turn = PLAYER
 
         while not self.board.is_game_over():
 
-            # PLAYER MOVE
             if self.current_turn == PLAYER:
                 print("\nWaiting for player's move...")
                 self.cache_legal_moves()
@@ -325,13 +344,18 @@ class GameManager:
                 print(self.board)
                 self.current_turn = COM
 
-            # COMPUTER MOVE
             else:
                 print("\nComputer thinking...")
                 mv = self.get_ai_move()
                 print("Computer plays:", mv)
+
                 self.board.push(mv)
                 print(self.board)
+
+                # NEW: Wait for motion controller to finish  
+                expected_fen = self.board.fen()
+                self.wait_until_physical_matches(expected_fen)
+
                 self.current_turn = PLAYER
 
         print("\nGame over:", self.board.result())
