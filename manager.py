@@ -22,6 +22,7 @@ simulataneously unplugging and then replugging the 5V out to mux's
 
 """
 
+import sys
 import chess
 import chess.engine
 import time
@@ -40,6 +41,7 @@ try:
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)
         engine_path = config["path"]
+        mode = config["mode"]
 except Exception:
     raise Exception("Must initialize config.yaml with { path: stockfish_executable_path }")
 
@@ -93,12 +95,13 @@ def print_pretty_board(board):
 # SerialNano — connects to Nano by USB serial_number
 # --------------------------------------------------
 class SerialNano:
-    def __init__(self, serial_number, baud=115200, timeout=1.0, label="Nano"):
+    def __init__(self, serial_number, baud=115200, timeout=1.0, label="Nano", debug = True):
         self.serial_number = serial_number
         self.baud = baud
         self.timeout = timeout
         self.label = label
         self.ser = None
+        self.debug = debug
         self._open_port()
 
     def _open_port(self):
@@ -111,7 +114,9 @@ class SerialNano:
         if port_name is None:
             raise RuntimeError(f"{self.label}: No USB device with serial {self.serial_number}")
 
-        print(f"[{self.label}] Connecting on {port_name}")
+        if self.debug:
+            print(f"[{self.label}] Connecting on {port_name}")
+
         self.ser = serial.Serial(port_name, baudrate=self.baud, timeout=self.timeout)
         time.sleep(5.0)   # Nano bootloader reset delay
 
@@ -148,16 +153,22 @@ class SerialNano:
 # GameManager
 # --------------------------------------------------
 class GameManager:
-    def __init__(self, engine_path):
+    def __init__(self, engine_path = None):
         self.board      = chess.Board()
-        self.engine     = chess.engine.SimpleEngine.popen_uci(engine_path)
+
+        if mode != "uci":
+            self.engine = chess.engine.SimpleEngine.popen_uci(engine_path)
+            self.debug = True
+        else:
+            self.debug = False
+        
         self.current_turn = PLAYER
 
         # The last accepted 8×8 board
         self.physical_board = [[None for _ in range(8)] for _ in range(8)]
 
         # Single active Nano (left half)
-        self.nano0 = SerialNano(NANO0_SERIAL, label="Nano0")
+        self.nano0 = SerialNano(NANO0_SERIAL, label="Nano0", debug = self.debug)
 
     # --------------------------------------------------
     # Apply mapping & convert 32-byte block → 8×4 matrix
@@ -188,7 +199,8 @@ class GameManager:
     # --------------------------------------------------
     def _read_half_from_nano0(self):
         if not self.nano0.ping():
-            print("Nano0 ping failed")
+            if self.debug:
+                print("Nano0 ping failed")
             return None
         raw = self.nano0.get_block()
         if raw is None:
@@ -265,20 +277,24 @@ class GameManager:
             return None
 
         # NEW stable board detected
-        print("\n========================")
-        print("NEW STATE DETECTED:")
-        print("========================\n")
-        print_pretty_board(new_board)
+        if self.debug:
+            print("\n========================")
+            print("NEW STATE DETECTED:")
+            print("========================\n")
+            print_pretty_board(new_board)
 
         new_fen = self.board_to_fen(new_board).split(" ")[0]
-        print("Detected FEN:", new_fen)
+
+        if self.debug:
+            print("Detected FEN:", new_fen)
 
         if new_fen in self.cached_fens:
             uci = self.cached_fens[new_fen]
             self.physical_board = new_board
             return uci
 
-        print("No matching legal move for this new board state.")
+        if self.debug:
+            print("No matching legal move for this new board state.")
         return None
 
     # --------------------------------------------------
@@ -288,7 +304,8 @@ class GameManager:
         """
         Poll Nano every second until the board_to_fen() matches expected_fen.
         """
-        print("\nWaiting for physical board to match engine move...")
+        if self.debug:
+            print("\nWaiting for physical board to match engine move...")
 
         expected = expected_fen.split(" ")[0]
 
@@ -298,9 +315,10 @@ class GameManager:
                 fen_phys = self.board_to_fen(b).split(" ")[0]
 
                 if fen_phys == expected:
-                    print("Physical board now matches engine move.")
+                    if self.debug:
+                        print("Physical board now matches engine move.")
+                        print_pretty_board(b)
                     self.physical_board = b
-                    print_pretty_board(b)
                     return
 
             time.sleep(poll_interval)
@@ -378,11 +396,99 @@ class GameManager:
         except:
             pass
 
+        # --------------------------------------------------
+    # Full loop for online play against lichess
+    # --------------------------------------------------
+    def uci_loop(self):
+        self.board = chess.Board()
+        expected_fen = self.board.fen()
+        self.wait_until_physical_matches(expected_fen)
+        
+        while True:
+            line = sys.stdin.readline().strip()
+            if not line:
+                continue
+
+            if line == "uci":
+                print("id name AutoChessBoard")
+                print("id author WPI_RBE_594")
+                
+                print("uciok")
+
+
+                sys.stdout.flush()
+
+            elif line == "isready":
+                print("readyok")
+                sys.stdout.flush()
+
+            elif line == "printboard":
+                print(self.board)
+            
+            elif line.startswith("setoption name"):
+                pass
+            #     parts = line.split(" ")
+            #     if "name" in parts and "value" in parts:
+            #         name_idx = parts.index("name") + 1
+            #         val_idx = parts.index("value") + 1
+            #         if parts[name_idx] == "ModelWeights":
+            #             if parts[val_idx] in ModelWeights and parts[val_idx] != model_weights_name:
+            #                 model_weights_name = parts[val_idx]
+            #                 model.load_state_dict(torch.load(ModelWeights[model_weights_name], map_location=device))
+            #             else:
+            #                 pass
+            #         else:
+            #             move_selection_options[parts[name_idx]] = int(parts[val_idx])/1000
+
+
+            elif line.startswith("position"):
+                parts = line.split(" ")
+                if "startpos" in parts:
+                    self.board.set_fen(chess.Board().fen())
+                    moves_index = parts.index("moves") + 1 if "moves" in parts else None
+                    if moves_index:
+                        for move in parts[moves_index:]:
+                            self.board.push_uci(move)
+                elif "fen" in parts:
+                    fen_index = parts.index("fen") + 1
+                    fen = " ".join(parts[fen_index:fen_index+6])
+                    self.board.set_fen(fen)
+                    if "moves" in parts:
+                        moves_index = parts.index("moves") + 1
+                        for move in parts[moves_index:]:
+                            self.board.push_uci(move)
+
+                
+                expected_fen = self.board.fen()
+                self.wait_until_physical_matches(expected_fen)
+
+            elif line.startswith("go"):
+                self.cache_legal_moves()
+                
+                while uci is not None:
+                    uci = self.detect_player_move()
+
+                if uci:
+                    print(f"bestmove {uci}")
+                    sys.stdout.flush()
+                else:
+                    print("bestmove 0000")
+                    sys.stdout.flush()
+
+                self.board.push_uci(uci)
+
+            elif line == "quit":
+                break
+
 
 # --------------------------------------------------
 # MAIN
 # --------------------------------------------------
 if __name__ == "__main__":
-    gm = GameManager(engine_path)
-    gm.play()
-    gm.quit()
+    if mode == "uci":
+        gm = GameManager()
+        gm.uci_loop()
+    else:
+        gm = GameManager(engine_path)
+        gm.play()
+        gm.quit()
