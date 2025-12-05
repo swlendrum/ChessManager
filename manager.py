@@ -295,6 +295,17 @@ class GameManager:
                 print_pretty_board(b1)
                 break
 
+        # Convert detected physical board into actual chess.Board()
+        init_fen = self.board_to_fen(b1)
+        print("Initial FEN:", init_fen)
+
+        try:
+            self.board = chess.Board(init_fen)
+        except Exception as e:
+            print("ERROR: Could not load initial board FEN:", e)
+            return
+
+
         self.current_turn = PLAYER
 
         while not self.board.is_game_over():
