@@ -46,18 +46,18 @@ BLOCK_BYTES          = NUM_READERS_PER_NANO  # 1 byte per reader (piece enum)
 
 # Known Nano serial numbers (FTDI / USB‐UART)
 # NOTE: Fill in Nano0 serial when known.
-# NANO0_SERIAL = "REPLACE_WITH_NANO0_SERIAL"  # a–d files (left half from White's POV)
-NANO1_SERIAL = "A5069RR4"                     # e–h files (right half from White's POV)
+# NANO1_SERIAL = "REPLACE_WITH_NANO0_SERIAL"  # a–d files (left half from White's POV)
+NANO0_SERIAL = "A5069RR4"                     # e–h files (right half from White's POV)
 
 # Mapping arrays:
 # map_arr[i] = index in the *remapped* array where raw index i should go.
 # Applied per 8-channel block (0–7, 8–15, 16–23, 24–31).
 #
 # Nano0 (a–d):
-# NANO0_MAP = [7, 6, 1, 0, 2, 3, 5, 4]
+# NANO1_MAP = COMPLETE
 #
 # Nano1 (e–h):
-NANO1_MAP = [7, 6, 5, 4, 1, 0, 2, 3]
+NANO0_MAP = [4, 5, 6, 7, 2, 3, 1, 0]
 
 
 # -------------------------------
@@ -253,10 +253,10 @@ class GameManager:
 
         # --- Serial Nanos ---
         # Nano 0 (a–d files) — placeholder, commented until serial is known.
-        # self.nano0 = SerialNano(NANO0_SERIAL, label="Nano0")
+        self.nano0 = SerialNano(NANO0_SERIAL, label="Nano0")
 
         # Nano 1 (e–h files)
-        self.nano1 = SerialNano(NANO1_SERIAL, label="Nano1")
+        # self.nano1 = SerialNano(NANO1_SERIAL, label="Nano1")
 
     # ---------------------------
     # Remap & reshape half-board
@@ -282,7 +282,7 @@ class GameManager:
             base = mux * 8
             for i in range(8):
                 old_idx = base + i
-                new_idx = base + map_arr[i]
+                new_idx = base + map_arr.index(i)
                 remapped[new_idx] = raw_block[old_idx]
 
         # Now remapped is length 32; interpret as 8 rows x 4 cols
@@ -300,36 +300,37 @@ class GameManager:
     # ---------------------------
     # Public API: read half-boards
     # ---------------------------
-    def _read_half_from_nano1(self):
+    # def _read_half_from_nano1(self):
+    #     """
+    #     Read and parse right half (e-h files) from Nano1.
+    #     """
+    #     # Optionally ping first; if ping fails, bail.
+    #     if not self.nano1.ping():
+    #         print("Nano1 ping failed")
+    #         return None
+
+    #     raw = self.nano1.get_block()
+
+    #     if raw is None:
+    #         return None
+
+    #     return self._remap_and_reshape_half(raw, NANO1_MAP)
+    
+    def _read_half_from_nano0(self):
         """
-        Read and parse right half (e-h files) from Nano1.
+        Read and parse right half (a-d files) from Nano0.
         """
         # Optionally ping first; if ping fails, bail.
-        if not self.nano1.ping():
-            print("Nano1 ping failed")
+        if not self.nano0.ping():
+            print("Nano0 ping failed")
             return None
 
-        raw = self.nano1.get_block()
+        raw = self.nano0.get_block()
+
         if raw is None:
             return None
 
-        return self._remap_and_reshape_half(raw, NANO1_MAP)
-
-    # Template for Nano0 (left half), left here commented until serial is known.
-    #
-    # def _read_half_from_nano0(self):
-    #     """
-    #     Read and parse left half (a–d files) from Nano0.
-    #     """
-    #     if not self.nano0.ping():
-    #         print("Nano0 ping failed")
-    #         return None
-    #
-    #     raw = self.nano0.get_block()
-    #     if raw is None:
-    #         return None
-    #
-    #     return self._remap_and_reshape_half(raw, NANO0_MAP)
+        return self._remap_and_reshape_half(raw, NANO0_MAP)
 
     def assemble_full_board(self):
         """
@@ -342,18 +343,18 @@ class GameManager:
         """
         # TODO: when Nano0 serial is known, uncomment this and remove placeholder.
         #
-        # left = self._read_half_from_nano0()
-        # if left is None:
-        #     print("Failed to read left half (Nano0)")
-        #     return None
+        left = self._read_half_from_nano0()
+        if left is None:
+            print("Failed to read left half (Nano0)")
+            return None
 
         # Placeholder: left half is empty for now
-        left = [[None for _ in range(4)] for _ in range(8)]
+        right = [[None for _ in range(4)] for _ in range(8)]
 
-        right = self._read_half_from_nano1()
-        if right is None:
-            print("Failed to read right half (Nano1)")
-            return None
+        # right = self._read_half_from_nano1()
+        # if right is None:
+        #     print("Failed to read right half (Nano1)")
+        #     return None
 
         full = [[None for _ in range(8)] for _ in range(8)]
         for r in range(8):
