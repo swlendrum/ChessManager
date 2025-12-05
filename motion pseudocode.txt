@@ -1,0 +1,71 @@
+We have coords for all rows 1-8 and cols a-h
+(established in normal math x,y, frame from bottom left)
+
+SW (square width) = ## in mm
+
+for letter in (a : h):
+    letter coordinate = (letter - a + 0.5) * SW
+
+for number in (1 : 8):
+    number coordinate = (number - 1 + 0.5) * SW
+
+
+data def:
+
+a pos is tuple of ints in mm: (x_coordinate, y_coordinate)
+representing absolute coordinates relative to bottom left xy
+
+a motion_step is a tuple of ints in mm: (dx, dy)
+representing motion steps to take relative to current pos
+
+def uci_to_coords(uci) -> start_pos, end_pos
+
+def find_closest_corners(start_pos, end_pos) -> first_corner_pos, last_corner_pos
+
+def get_manhattan_steps(start_corner_pos, end_corner_pos) -> List[motion_step]
+
+def to_corner(square_pos, corner_pos) -> List[motion_step] (len 2)
+# moves left/right to edge, then up/down to corner
+
+def from_corner(corner_pos, square_pos) -> List[motion_step] (len 2)
+# moves up/down to edge, then left/right to center of square
+
+# MAIN FUNC:
+def generate_motion_steps(uci) -> (starting_pos, List[motion_step]):
+    start_pos, end_pos = uci_to_coords(uci)
+    first_corner_pos, last_corner_pos = find_closest_corners(start_pos, end_pos)
+    to_corner_moves = to_corner(start_pos, first_corner_pos)
+    from_corner_moves = from_corner(last_corner_pos, end_pos)
+    motion_steps = get_manhattan_steps(first_corner_pos, last_corner_pos)
+    full_motion = to_corner_moves + motion_steps + from_corner_moves
+    full_motion = concat_motion_steps(full_motion)
+    return (start_pos, full_motion)
+
+def concat_motion_steps(steps: List[motion_step]) -> steps_merged: List[motion_step]
+# If two motions are in the same direction, combines them together
+# eg. [(10, 0), (0, 4), (0, 3), (-5, 0)] -> [(10, 0), (0, 7), (-5, 0)]
+
+def relative_to_center(pos) -> pos
+# transforms position from absolute (bottom-left 00) to middle 00.
+# that is subtract 4*SW from both coordinates
+
+def send_command_to_nano(position, relative=True)
+# sends command to nano1 (connected to stepper)
+
+
+when we recieve uci move,
+
+start_pos, motion_steps = generate_motion_steps(uci)
+start_pos_rel = relative_to_center(start_pos)
+
+'''
+I'm using two different definitions of relative, which is why this looks weird.
+start_pos_rel, relative means cords relative to center of board.
+The boolean param relative means whether the motion system should make a step (dx,dy)
+or go to a position (x, y). So this is correct below where the first command I send it
+is "go to this position relative to the cetner which is where you're origin is"
+while the relative flag is false since I'm saying go to this position, not move this much
+'''
+send_command_to_nano(start_pos_rel, relative=False, magnet=False)
+for motion_step in motion_steps:
+    send_command_to_nano(motion_step, relative=True, magnet=True)
