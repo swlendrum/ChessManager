@@ -56,10 +56,12 @@ BLOCK_BYTES          = NUM_READERS_PER_NANO
 # Only Nano0 is active for now
 NANO0_SERIAL = "A5069RR4"     # left half of the board
 
+NANO1_SERIAL = "95635333231351B0D151" # right half
+
+
 # Mapping (per 8-channel block)
 NANO0_MAP = [4, 5, 6, 7, 2, 3, 1, 0]
 
-# Placeholder mapping for Nano1 (not used yet)
 NANO1_MAP = [4, 5, 2, 3, 1, 0, 6, 7]
 
 
@@ -158,6 +160,7 @@ class GameManager:
 
         # Single active Nano (left half)
         self.nano0 = SerialNano(NANO0_SERIAL, label="Nano0")
+        self.nano1 = SerialNano(NANO1_SERIAL, label="Nano1")
 
     # --------------------------------------------------
     # Apply mapping & convert 32-byte block → 8×4 matrix
@@ -194,6 +197,18 @@ class GameManager:
         if raw is None:
             return None
         return self._remap_and_reshape_half(raw, NANO0_MAP)
+    
+    # --------------------------------------------------
+    # Read right half from Nano1
+    # --------------------------------------------------
+    def _read_half_from_nano1(self):
+        if not self.nano1.ping():
+            print("Nano1 ping failed")
+            return None
+        raw = self.nano1.get_block()
+        if raw is None:
+            return None
+        return self._remap_and_reshape_half(raw, NANO1_MAP)
 
     # --------------------------------------------------
     # Convert half-boards → full 8×8 (right half dummy)
@@ -202,8 +217,13 @@ class GameManager:
         left = self._read_half_from_nano0()
         if left is None:
             return None
+        
+        right = self._read_half_from_nano1()
+        if right is None:
+            return None
 
-        right = [[None for _ in range(4)] for _ in range(8)]
+        # right = [[None for _ in range(4)] for _ in range(8)]
+        
         full = [[None for _ in range(8)] for _ in range(8)]
 
         for r in range(8):
