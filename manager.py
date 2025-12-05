@@ -64,7 +64,7 @@ NANO1_SERIAL = "95635333231351B0D151" # right half
 NANO0_MAP = [4, 5, 6, 7, 2, 3, 1, 0]
 
 NANO1_MAP = [4, 5, 2, 3, 1, 0, 6, 7]
-
+NANO1_MAP2 = [2, 3, 4, 5, 1, 0, 6, 7]
 
 # --------------------------------------------------
 # PRINTING HELPERS (now print SYMBOLS)
@@ -172,6 +172,10 @@ class GameManager:
 
         remapped = [0] * NUM_READERS_PER_NANO
         for mux in range(4):
+            if mux == 0:
+                map_arr = NANO1_MAP
+            else:
+                map_arr = NANO1_MAP2
             base = mux * 8
             for i in range(8):
                 old_idx = base + i
