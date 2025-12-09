@@ -422,6 +422,10 @@ class GameManager:
 # --------------------------------------------------
 if __name__ == "__main__":
     gm = GameManager(engine_path)
+    while True:
+        b = gm.assemble_full_board()
+        print_pretty_board(b)
+        time.sleep(1)
 
-    gm.play()
-    gm.quit()
+    # gm.play()
+    # gm.quit()
