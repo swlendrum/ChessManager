@@ -203,9 +203,6 @@ class GameManager:
             print("Nano0 ping failed")
             return None
         raw = self.nano0.get_block()
-        # print(raw)
-        print("Nano0, mux 1, spot 2:", raw[10])
-        print("Nano0, mux 1, spot 3:", raw[11])
         if raw is None:
             return None
         return self._remap_and_reshape_half(raw, Nano0=True)
@@ -425,5 +422,11 @@ class GameManager:
 # --------------------------------------------------
 if __name__ == "__main__":
     gm = GameManager(engine_path)
-    gm.play()
-    gm.quit()
+
+    while True:
+        b = gm.assemble_full_board()
+        print_pretty_board(b)
+        time.sleep(1)
+
+    # gm.play()
+    # gm.quit()
