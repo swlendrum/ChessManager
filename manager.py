@@ -55,7 +55,8 @@ NUM_READERS_PER_NANO = 32
 BLOCK_BYTES          = NUM_READERS_PER_NANO
 
 # Only Nano0 is active for now
-NANO0_SERIAL = "A5069RR4"     # left half of the board
+# NANO0_SERIAL = "A5069RR4"     # left half of the board
+NANO0_SERIAL = "A900DMBL"
 
 NANO1_SERIAL = "95635333231351B0D151" # right half
 
