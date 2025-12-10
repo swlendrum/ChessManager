@@ -16,7 +16,6 @@ from motion import Pos, send_rel
 
 NANO0_SERIAL = "A900DMBL"
 
-
 def open_nano0(baud: int = 115200, timeout: float = 1.0):
     """Find and open Nano0 by its serial number."""
     port_name = None
