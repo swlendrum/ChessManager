@@ -29,7 +29,7 @@ import yaml
 import serial
 import serial.tools.list_ports
 
-# from motion import execute_uci_move
+from motion import execute_uci_move
 
 # --------------------------------------------------
 # GLOBAL CONSTANTS
@@ -394,8 +394,7 @@ class GameManager:
                 # NOTE: nano0 is the same device used for board reading;
                 # we are just sending different command bytes here.
                 
-                # TODO: Re-enable
-                # execute_uci_move(uci, self.nano0.ser)
+                execute_uci_move(uci, self.nano0.ser)
 
                 # Update internal board state
                 self.board.push(mv)
