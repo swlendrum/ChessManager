@@ -26,7 +26,9 @@ from typing import List, Tuple, Protocol, runtime_checkable
 # Board geometry
 # ----------------------------------------------------------
 
-SW: float = 50.0   # mm per tile — update for real hardware
+# SW: float = 50.0
+SW: float = 57.15 # mm
+
 BOARD_SIZE = 8
 
 
@@ -105,24 +107,24 @@ def to_corner(start: Pos, corner: Pos) -> List[MotionStep]:
     steps = []
     dx = corner.x - start.x
     dy = corner.y - start.y
-    if dx != 0: steps.append(Pos(dx, 0))
     if dy != 0: steps.append(Pos(0, dy))
+    if dx != 0: steps.append(Pos(dx, 0))
     return steps
 
 def from_corner(corner: Pos, end: Pos) -> List[MotionStep]:
     steps = []
     dy = end.y - corner.y
     dx = end.x - corner.x
-    if dy != 0: steps.append(Pos(0, dy))
     if dx != 0: steps.append(Pos(dx, 0))
+    if dy != 0: steps.append(Pos(0, dy))
     return steps
 
 def manhattan(start: Pos, end: Pos) -> List[MotionStep]:
     steps = []
-    dy = end.y - start.y
     dx = end.x - start.x
-    if dy != 0: steps.append(Pos(0, dy))
+    dy = end.y - start.y
     if dx != 0: steps.append(Pos(dx, 0))
+    if dy != 0: steps.append(Pos(0, dy))
     return steps
 
 def concat_steps(steps):
@@ -140,9 +142,9 @@ def concat_steps(steps):
 
     return merged
 
-def relative_to_center(pos: Pos) -> Pos:
-    center = 4 * SW
-    return Pos(pos.x - center, pos.y - center)
+def relative_to_homing(pos: Pos) -> Pos:
+    to_homing = (-2.5 * SW, 7.5 * SW)
+    return Pos(pos.x - to_homing[0], pos.y - to_homing[1])
 
 
 # ----------------------------------------------------------
@@ -201,7 +203,7 @@ def execute_uci_move(uci: str, port: SerialLike):
     print(f"[motion] Executing: {uci}")
 
     start_abs, steps = generate_motion_steps(uci)
-    start_rel = relative_to_center(start_abs)
+    start_rel = relative_to_homing(start_abs)
 
     # 1. Move ABSOLUTELY to start square center
     send_abs(port, start_rel, useMag=0)
@@ -210,3 +212,12 @@ def execute_uci_move(uci: str, port: SerialLike):
     for s in steps:
         send_rel(port, s, useMag=1)
 
+
+if __name__ == "__main__":
+    # Testing script
+    uci = "e2g3"
+    start_abs, steps = generate_motion_steps(uci)
+    start_rel = relative_to_homing(start_abs)
+    print("Start rel:", start_rel)
+    for step in steps:
+        print(step)
