@@ -131,29 +131,28 @@ def concat_steps(steps):
     if not steps:
         return steps
     
+    # Round each step to 2 decimal places
+    steps = [Pos(round(s.x, 2), round(s.y, 2)) for s in steps]
+    
     merged = [steps[0]]
-    changed = False
 
     for s in steps[1:]:
         last = merged[-1]
         if last.x != 0 and s.x != 0:      # merge horizontal
             merged[-1] = Pos(last.x + s.x, last.y)
-            changed = True
         elif last.y != 0 and s.y != 0:    # merge vertical
             merged[-1] = Pos(last.x, last.y + s.y)
-            changed = True
         else:
             merged.append(s)
     
     # Filter out zero-length steps
-    merged = [s for s in merged if s.x != 0 or s.y != 0]
+    filtered = [s for s in merged if s.x != 0 or s.y != 0]
     
-    # If we made changes and there are now fewer steps, recurse
-    # (in case filtering created new adjacent same-direction pairs)
-    if changed and len(merged) < len(steps):
-        return concat_steps(merged)
+    # If filtering removed steps or we still have mergeable pairs, recurse
+    if len(filtered) < len(merged):
+        return concat_steps(filtered)
     
-    return merged
+    return filtered
 
 def relative_to_homing(pos: Pos) -> Pos:
     to_homing = (-2.5 * SW, 7.5 * SW)
