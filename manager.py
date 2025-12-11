@@ -266,7 +266,7 @@ class GameManager:
             if empties > 0:
                 fen_row += str(empties)
             rows.append(fen_row)
-        return "/".join(rows) + " w KQkq - 0 1"
+        return "/".join(rows) + " w KQ - 0 1"
 
     # --------------------------------------------------
     # CACHE LEGAL MOVES
