@@ -272,12 +272,26 @@ class GameManager:
     # CACHE LEGAL MOVES
     # --------------------------------------------------
     def cache_legal_moves(self):
+        """
+        Cache legal moves by storing the first 4 FEN fields:
+        - piece placement
+        - active color
+        - castling rights
+        - en-passant square
+        
+        This allows castling and en-passant detection.
+        """
         self.cached_fens = {}
         for mv in self.board.legal_moves:
             temp = self.board.copy()
             temp.push(mv)
-            fen = temp.fen().split(" ")[0]  # piece placement only
-            self.cached_fens[fen] = mv.uci()
+            full_fen = temp.fen().split(" ")
+            
+            # Use piece placement + active color + castling rights + en-passant
+            fen_key = " ".join(full_fen[:4])
+            
+            self.cached_fens[fen_key] = mv.uci()
+
 
     # --------------------------------------------------
     # Detect physical move (new logic)
@@ -299,8 +313,10 @@ class GameManager:
         print("========================\n")
         print_pretty_board(new_board)
 
-        new_fen = self.board_to_fen(new_board).split(" ")[0]
-        print("Detected FEN:", new_fen)
+        # Build FEN and extract first 4 fields (needed for castling)
+        parts = self.board_to_fen(new_board).split(" ")
+        new_fen = " ".join(parts[:4])
+        print("Detected FEN (first 4 fields):", new_fen)
 
         if new_fen in self.cached_fens:
             uci = self.cached_fens[new_fen]
@@ -310,21 +326,23 @@ class GameManager:
         print("No matching legal move for this new board state.")
         return None
 
+
     # --------------------------------------------------
     # NEW FUNCTION: WAIT FOR PHYSICAL BOARD TO MATCH ENGINE MOVE
     # --------------------------------------------------
     def wait_until_physical_matches(self, expected_fen, poll_interval=1.0):
         """
-        Poll Nano every second until the board_to_fen() matches expected_fen.
+        Poll Nanos until the physical board FEN (fields 1–4)
+        matches the engine's expected FEN.
         """
         print("\nWaiting for physical board to match engine move...")
 
-        expected = expected_fen.split(" ")[0]
+        expected = " ".join(expected_fen.split(" ")[:4])
 
         while True:
             b = self.assemble_full_board()
             if b is not None:
-                fen_phys = self.board_to_fen(b).split(" ")[0]
+                fen_phys = " ".join(self.board_to_fen(b).split(" ")[:4])
 
                 if fen_phys == expected:
                     print("Physical board now matches engine move.")
@@ -333,6 +351,7 @@ class GameManager:
                     return
 
             time.sleep(poll_interval)
+
 
     # --------------------------------------------------
     # AI move
