@@ -128,18 +128,31 @@ def manhattan(start: Pos, end: Pos) -> List[MotionStep]:
     return steps
 
 def concat_steps(steps):
-    if not steps: return steps
+    if not steps:
+        return steps
+    
     merged = [steps[0]]
+    changed = False
 
     for s in steps[1:]:
         last = merged[-1]
         if last.x != 0 and s.x != 0:      # merge horizontal
             merged[-1] = Pos(last.x + s.x, last.y)
+            changed = True
         elif last.y != 0 and s.y != 0:    # merge vertical
             merged[-1] = Pos(last.x, last.y + s.y)
+            changed = True
         else:
             merged.append(s)
-
+    
+    # Filter out zero-length steps
+    merged = [s for s in merged if s.x != 0 or s.y != 0]
+    
+    # If we made changes and there are now fewer steps, recurse
+    # (in case filtering created new adjacent same-direction pairs)
+    if changed and len(merged) < len(steps):
+        return concat_steps(merged)
+    
     return merged
 
 def relative_to_homing(pos: Pos) -> Pos:
@@ -215,7 +228,7 @@ def execute_uci_move(uci: str, port: SerialLike):
 
 if __name__ == "__main__":
     # Testing script
-    uci = "e2g3"
+    uci = "e7e6"
     start_abs, steps = generate_motion_steps(uci)
     start_rel = relative_to_homing(start_abs)
     print("Start rel:", start_rel)
