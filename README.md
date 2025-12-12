@@ -309,7 +309,7 @@ Update `NANO0_SERIAL` and `NANO1_SERIAL` in `manager.py`.
 
 **Solution:** Create `config.yaml` with correct path:
 ```bash
-echo "path: /Users/slendrum/Desktop/WPI/RBE/594/ChessManager/stockfish/stockfish-macos-m1-apple-silicon" > config.yaml
+echo "path: your-path-to-stockfish" > config.yaml
 ```
 
 ---
