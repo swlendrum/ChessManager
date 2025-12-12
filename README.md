@@ -19,7 +19,7 @@ A Raspberry Pi-based automatic chess board that reads NFC-tagged pieces using Ar
 
 The ChessManager system is a full-duplex chess-playing robot with:
 
-1. **NFC Board Sensing**: Two Arduino Nanos (Nano0 and Nano1) scan 4 multiplexers each, reading 32 NFC reader tags total to detect piece positions across the 8×8 board.
+1. **NFC Board Sensing**: Two Arduino Nanos (Nano0 and Nano1) scan 4 multiplexers each, reading 64 NFC reader tags total to detect piece positions across the 8×8 board.
 2. **Move Detection**: Real-time polling detects when the player moves a piece by comparing stable board states.
 3. **AI Integration**: Stockfish chess engine provides computer moves with 0.1-second time limit per move.
 4. **Motion Execution**: An electromagnet-driven gantry system moves pieces via serial commands to a motion controller (Nano).
@@ -48,7 +48,7 @@ The ChessManager system is a full-duplex chess-playing robot with:
          │              │
     ┌────┴──────────────┴────┐
     │  4×Multiplexers (each) │  ← 8 NFC readers per mux
-    │  32 total NFC readers  │
+    │  64 total NFC readers  │
     └────────────────────────┘
          │
     ┌────▼──────────────────┐
@@ -74,9 +74,6 @@ The ChessManager system is a full-duplex chess-playing robot with:
 |--------|---------|
 | `manager.py` | Game orchestration, board state, Stockfish interface, Nano I/O |
 | `motion.py` | Chess move → gantry motion planning (path generation, corner detection) |
-| `test_motion.py` | Test motion controller with hard-coded move sequence |
-| `test_chess_move.py` | Test full UCI move execution (e.g., "e3g4") |
-| `stockfish/` | Stockfish engine binary (precompiled for macOS M1) |
 | `config.yaml` | Configuration file with Stockfish binary path |
 
 ---
@@ -84,20 +81,18 @@ The ChessManager system is a full-duplex chess-playing robot with:
 ## Hardware Requirements
 
 ### Microcontrollers
-- **Raspberry Pi 4B** (or 5): Game manager and orchestration
-- **Arduino Nano × 2**: NFC board sensing (Nano0 for left half, Nano1 for right half)
-- **Arduino Nano × 1**: Motion controller (gantry + electromagnet)
+- **Raspberry Pi 4B**: Game manager and orchestration
+- **Arduino Nano × 2**: NFC board sensing (Nano0 for left half, Nano1 for right half) and motion control
 
 ### Sensors & Actuators
-- **NFC Readers**: 32 total (4 multiplexers × 8 channels each)
-  - 16 readers per Nano (4 mux × 8 ch/mux)
+- **NFC Readers**: 64 total (2 Nanos x 4 multiplexers each × 8 channels each)
   - Scanned continuously for piece UIDs
 - **Electromagnet**: Driven by motion controller for piece pickup
-- **XY Gantry**: Stepper-motor-driven or servo-driven for (x, y) positioning
-- **NFC-Tagged Pieces**: Chess pieces with NFC tags (UID per piece)
+- **XY Gantry**: Stepper-motor-driven for (x, y) positioning
+- **NFC-Tagged Pieces**: Chess pieces with NFC tags
 
 ### Board Geometry
-- **Square size**: 57.15 mm (SW constant in `motion.py`)
+- **Square size**: 57.15 mm or 2.25 inches
 - **Board dimensions**: 8×8 = 57.15 × 8 = ~457 mm per side
 - **Coordinate system**: Bottom-left is (0, 0); top-right is ~457, ~457 mm
 
@@ -123,15 +118,12 @@ pip install -r requirements.txt
 path: /path/to/stockfish/stockfish-macos-m1-apple-silicon
 ```
 
-Replace with your Stockfish binary path. On macOS M1, use the precompiled binary in `stockfish/stockfish-macos-m1-apple-silicon`.
+Replace with your Stockfish binary path.
 
 ### 3. Flash Arduino Sketches
 
-Upload firmware to the three Nanos:
-- **Nano0 & Nano1**: NFC reader firmware (reads from multiplexers, responds to `CMD_GET_BLOCK` and `CMD_PING` over serial)
-- **Motion Controller Nano**: Motion firmware (listens for `MOTION_MOVE_ABS`, `MOTION_MOVE_REL`, etc.; controls gantry + electromagnet)
-
-Firmware should implement the serial protocols documented in `motion.py` and `manager.py` comments.
+Upload firmware to the three Nanos.
+Firmware can be found [here](https://github.com/CAP1Sup/RBE594-Nanos)
 
 ### 4. Set Nano Serial Numbers
 
@@ -139,11 +131,6 @@ Update `manager.py` constants with your Nano serial numbers:
 ```python
 NANO0_SERIAL = "A900DMBL"     # left half NFC reader
 NANO1_SERIAL = "95635333231351B0D151"  # right half NFC reader
-```
-
-Find serial numbers on macOS:
-```bash
-system_profiler SPUSBDataType | grep "Serial Number"
 ```
 
 ---
@@ -222,12 +209,7 @@ ChessManager/
 ├── motion.py               # Move planning (path, corners, motion commands)
 ├── config.yaml             # Configuration (Stockfish path, etc.)
 ├── requirements.txt        # Python dependencies
-├── README.md               # This file
-├── stockfish/              # Stockfish engine and source
-│   ├── stockfish-macos-m1-apple-silicon  # Precompiled binary
-│   ├── src/                # C++ source code
-│   └── wiki/               # Stockfish documentation
-└── .git                    # Git version control
+└── README.md               # This file
 ```
 
 ---
@@ -260,15 +242,6 @@ ChessManager/
 - `send_abs(port, pos, useMag)`: Absolute move to (x, y)
 - `send_rel(port, step, useMag)`: Relative move by (dx, dy)
 - `execute_uci_move(uci, port)`: Full sequence (absolute to start, relative steps)
-
----
-
-### Hardware Validation
-
-1. **NFC Readers**: Verify all 32 readers detect tags at expected board positions
-2. **Gantry Motion**: Test manual moves with test scripts before full gameplay
-3. **Electromagnet**: Test piece pickup at target squares
-4. **Roundtrip**: Play a few moves manually, verify computer detects and responds
 
 ---
 
