@@ -122,7 +122,7 @@ Replace with your Stockfish binary path.
 
 ### 3. Flash Arduino Sketches
 
-Upload firmware to the three Nanos.
+Upload firmware to the microcontrollers.
 Firmware can be found [here](https://github.com/CAP1Sup/RBE594-Nanos)
 
 ### 4. Set Nano Serial Numbers
